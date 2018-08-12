@@ -2,6 +2,8 @@
 // Created by Oleksiy Grechnyev on 8/12/18.
 //
 
+#include <iostream>
+
 #include <H264VideoStreamDiscreteFramer.hh>
 #include <H264VideoRTPSink.hh>
 
@@ -10,8 +12,14 @@
 #include "GoblinMediaSession.h"
 //==================================================================================
 const char *GoblinMediaSession::getAuxSDPLine(RTPSink *rtpSink, FramedSource *inputSource) {
-    if (nullptr != auxSDPLines)
+    using namespace std;
+
+    cout << "getAuxSDPLine()" << endl;
+    if (nullptr != auxSDPLines) {
+        cout << "auxSDPLines =" << endl;
+        cout << auxSDPLines << endl;
         return auxSDPLines;
+    }
 
     if (nullptr == sink) {
         sink = rtpSink;

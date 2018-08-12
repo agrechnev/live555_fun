@@ -27,3 +27,4 @@ include_directories(${LIVE555_INCLUDE_DIRS})
 
 add_subdirectory(stream1)
 add_subdirectory(client0)
+add_subdirectory(client1)
