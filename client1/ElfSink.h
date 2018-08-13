@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 
 #include <liveMedia.hh>
 
@@ -11,24 +13,26 @@
 
 class ElfSink : public MediaSink {
 public: //================== Parameter
-    static constexpr int BUFFER_SIZE = 100000;
+    static constexpr int BUFFER_SIZE = 1000000;
+    static constexpr int BUFFER_TOTAL_SIZE = BUFFER_SIZE + 100;
 public: //================== Methods
 
     static ElfSink *createNew(UsageEnvironment &env, MediaSubsession &subsession,
-                              char const *streamId = nullptr) {
-        return new ElfSink(env, subsession, streamId);
+                              int frWidth, int frHeight,  const std::string streamId) {
+        return new ElfSink(env, subsession, frWidth, frHeight, streamId);
     }
 
 protected: //================== Methods
 
     // Ctor
-    ElfSink(UsageEnvironment &env, MediaSubsession &subsession, char const *streamId) :
+    ElfSink(UsageEnvironment &env, MediaSubsession &subsession,
+            int frWidth, int frHeight, const std::string & streamId) :
             MediaSink(env),
             mediaSubsession(subsession),
-            streamID(strDup(streamId)) {}
-
-    // Dtor
-    ~ElfSink() override;
+            frWidth(frWidth),
+            frHeight(frHeight),
+            decoder(frWidth, frHeight),
+            streamID(streamId) {}
 
     Boolean continuePlaying() override;
 
@@ -45,10 +49,15 @@ private: //================== Methods
     void cbOnSourceClosure1();
 
 private:  //================== Fields
-    u_int8_t *buffer = new u_int8_t[BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE + 10];
-    MediaSubsession & mediaSubsession;
-    char *streamID;
-    VDecoder decoder{800, 500};
+    // Frame resolution
+    int frWidth = 0, frHeight = 0;
+
+//    u_int8_t *buffer = new u_int8_t[BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE + 10];
+    std::vector <uint8_t > buffer =  std::vector <uint8_t >(BUFFER_TOTAL_SIZE);
+
+    MediaSubsession &mediaSubsession;
+    std::string streamID;
+    VDecoder decoder;
     int frameCount = 0;
     int shift{4};
 };

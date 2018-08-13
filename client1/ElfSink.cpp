@@ -11,17 +11,11 @@
 
 //==================================================================================
 
-ElfSink::~ElfSink() {
-    delete[] buffer;
-    delete[] streamID;
-}
-//==================================================================================
-
 Boolean ElfSink::continuePlaying() {
     if (!fSource)
         return false;
 
-    fSource->getNextFrame(buffer + shift, BUFFER_SIZE, cbAfterGetFrame, this, cbOnSourceClosure, this);
+    fSource->getNextFrame(buffer.data() + shift, BUFFER_SIZE, cbAfterGetFrame, this, cbOnSourceClosure, this);
     return True;
 }
 //==================================================================================
@@ -40,6 +34,7 @@ void ElfSink::cbAfterGetFrame1(unsigned frameSize, unsigned numTruncatedBytes, s
     cout << "cbAfterGetFrame1 : frameSize = " << frameSize;
     cout << " , presentationTime = " << presentationTime.tv_sec << "." << presentationTime.tv_usec << endl;
     cout << "Frame : " << frameCount << endl;
+//    cout << "RES = " << frWidth << "x" << frHeight << endl;
 
     buffer[0] = 0;
     buffer[1] = 0;
@@ -52,18 +47,14 @@ void ElfSink::cbAfterGetFrame1(unsigned frameSize, unsigned numTruncatedBytes, s
 //    }
     frameCount++;
 
-    int CAMERA_WIDTH = 800, CAMERA_HEIGHT = 500;
-
     Mat frameOut; // Out Frames
-    Mat frameOutYuv(CAMERA_HEIGHT * 3 / 2, CAMERA_WIDTH, CV_8UC1); // Pre-allocate the YUV frame
+    Mat frameOutYuv(frHeight * 3 / 2, frWidth, CV_8UC1); // Pre-allocate the YUV frame
     // Decode this data
     if (frameSize > 0) {
-        decoder.parse(buffer, frameSize + shift,
-                      [&frameOut, &frameOutYuv, CAMERA_WIDTH, CAMERA_HEIGHT]
+        decoder.parse(buffer.data(), frameSize + shift,
+                      [this, &frameOut, &frameOutYuv]
                               (int ls0, int ls1, int ls2, void *d0, void *d1, void *d2) -> void {
                           // Create a Yuv frame
-                          int frWidth = CAMERA_WIDTH;
-                          int frHeight = CAMERA_HEIGHT;
                           size_t size0 = (size_t) (frWidth * frHeight / 4);
 
                           // Copy data line-by-line because of stupid memory alignment in AVFrame

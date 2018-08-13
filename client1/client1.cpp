@@ -30,7 +30,21 @@ void cbSSAfterPlay(void * data) {
 
     env << "cbSSAfterPlay()\n";
 
-    // TODO shutdown session
+    // Shutdown session
+    // sink first
+    Medium::close(ss->sink);
+    ss->sink = nullptr;
+
+    // Check if all subsessions are closed
+    MediaSession & session = ss->parentSession();
+    MediaSubsessionIterator iter(session);
+    while ((ss = iter.next()) != nullptr) {
+        if (ss->sink)
+            return;
+    }
+
+    env << "cbSSAfterPlay() : SHUTOWN \n";
+    // TODO : shut down stream
 }
 //==================================================================================
 // Main callbacks
@@ -52,28 +66,40 @@ void cbAfterSetup(RTSPClient* rtspClient, int resultCode, char* resultString){
 
     if (string(ss->mediumName()) == "video") {
         scs.subsessionVideo = ss;
-//        env << "cbAfterSetup() : video : RESOLUTION = " << ss->videoWidth() << "x" << ss->videoHeight() << "\n";
+
+        // Get the resolution one way or another
+        int frWidth = ss->videoWidth();
+        int frHeight = ss->videoHeight();
+        if (frWidth * frHeight == 0) {
+            frWidth = scs.frameWidth;
+            frHeight = scs.frameHeight;
+        }
+        if (frWidth * frHeight == 0)
+            throw runtime_error("cbAfterSetup() : Cannot determine video resolution !");
+
+        env << "cbAfterSetup() : video : RESOLUTION = " << frWidth << "x" << frHeight << "\n";
 
         // Create the video sink
-        ss->sink = ElfSink::createNew(env, *ss, rtspClient->url());
+        ss->sink = ElfSink::createNew(env, *ss, frWidth, frHeight, rtspClient->url());
         if (!ss->sink)
             throw runtime_error("cbAfterSetup() : Cannot create video sink !");
         // Save client ptr in subsession
         ss->miscPtr = rtspClient;
 
-        // Set up the next subsession, if any:
-        setupNextSubsession(rtspClient);
 
         // Start playing this sink
         ss->sink->startPlaying(*(ss->readSource()), cbSSAfterPlay, ss);
     } else if (string(ss->mediumName()) == "audio") {
         // Create the audio sink if needed
         env << "cbAfterSetup() : audio \n ";
+        ss->sink = nullptr;
     }
 
     // TODO: bye handler
 
 
+    // Set up the next subsession, if any:
+    setupNextSubsession(rtspClient);
 }
 //==================================================================================
 // Callback after "PLAY"
@@ -85,11 +111,7 @@ void cbAfterPlay(RTSPClient* rtspClient, int resultCode, char* resultString){
     if (resultCode)
         throw runtime_error("cbAfterPlay() : FAIL ! resultCode = " + to_string(resultCode));
 
-
-    // TODO optional timer
-
     delete[] resultString;
-
 }
 //==================================================================================
 void setupNextSubsession(RTSPClient* rtspClient) {
@@ -112,7 +134,7 @@ void setupNextSubsession(RTSPClient* rtspClient) {
             }
         }
         // "SETUP"
-        rtspClient->sendSetupCommand(*ss, cbAfterSetup, False, False);
+        rtspClient->sendSetupCommand(*ss, cbAfterSetup, False, True);
         return;
     }
 

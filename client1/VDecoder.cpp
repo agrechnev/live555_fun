@@ -36,8 +36,6 @@ VDecoder::VDecoder(int width, int height) :
     pFrame = av_frame_alloc();
     if (!pFrame)
         fatal("VDecoder: Cannot allocate frame.");
-
-
 }
 
 //=======================================
@@ -58,13 +56,13 @@ void VDecoder::parse(void *inData, size_t inSize, std::function<void(int, int, i
                                    (uint8_t *) inData, inSize, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
 
 
-        cout << "ret = " << ret << endl;
+//        cout << "ret = " << ret << endl;
         if (ret < 0)
             fatal("VDecoder: Parse error.");
         inData += ret;
         inSize -= ret;
 
-        cout << "pPkt->size = " << pPkt->size << endl;
+//        cout << "pPkt->size = " << pPkt->size << endl;
         if (pPkt->size > 0)
             decode(callBack);  // Decode frame
     }
