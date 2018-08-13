@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(SRCS
         client1.cpp
         ElfRTSPClient.h
-        ElfClientState.h
+        ElfClientState.cpp ElfClientState.h
         ElfSink.cpp ElfSink.h
         VDecoder.cpp VDecoder.h
         )

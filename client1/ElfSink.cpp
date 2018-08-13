@@ -47,9 +47,9 @@ void ElfSink::cbAfterGetFrame1(unsigned frameSize, unsigned numTruncatedBytes, s
     buffer[3] = 0x01;
 
     // Dump the frame
-    if (frameCount < 20) {
-        ofstream("dump" + to_string(frameCount) + ".bin", ios::binary).write((char *)buffer, frameSize + shift);
-    }
+//    if (frameCount < 20) {
+//        ofstream("dump" + to_string(frameCount) + ".bin", ios::binary).write((char *)buffer, frameSize + shift);
+//    }
     frameCount++;
 
     int CAMERA_WIDTH = 800, CAMERA_HEIGHT = 500;
@@ -66,6 +66,7 @@ void ElfSink::cbAfterGetFrame1(unsigned frameSize, unsigned numTruncatedBytes, s
                           int frHeight = CAMERA_HEIGHT;
                           size_t size0 = (size_t) (frWidth * frHeight / 4);
 
+                          // Copy data line-by-line because of stupid memory alignment in AVFrame
                           for (int i = 0; i < frHeight; ++i) {
                               memcpy(frameOutYuv.data + frWidth * i, d0 + i * ls0, frWidth);
                           }
@@ -76,15 +77,11 @@ void ElfSink::cbAfterGetFrame1(unsigned frameSize, unsigned numTruncatedBytes, s
                                      frWidth/2);
                           }
 
-//                          memcpy(frameOutYuv.data, d0, size0 * 4);
-//                          memcpy(frameOutYuv.data + size0 * 4, d1, size0);
-//                          memcpy(frameOutYuv.data + size0 * 5, d2, size0);
-
                           cvtColor(frameOutYuv, frameOut, CV_YUV2BGR_I420); // Convert YUV420p to BGR
                           imshow("frameOut", frameOut);
 
                           // Will need it here if no other waitKey
-                          if (waitKey(1) == 'q')
+                          if (waitKey(1) == 27)
                               exit(0);
                       });
     }

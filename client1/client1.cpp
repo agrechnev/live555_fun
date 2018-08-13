@@ -28,7 +28,7 @@ void cbSSAfterPlay(void * data) {
     RTSPClient * rtspClient= (RTSPClient *) (ss->miscPtr);
     UsageEnvironment & env = rtspClient->envir();
 
-    env << "cbSSAfterPlay(\n)";
+    env << "cbSSAfterPlay()\n";
 
     // TODO shutdown session
 }
@@ -48,21 +48,31 @@ void cbAfterSetup(RTSPClient* rtspClient, int resultCode, char* resultString){
     if (resultCode)
         throw runtime_error("cbAfterSetup() : FAIL ! resultCode = " + to_string(resultCode));
 
-    // Create the sink
-    ss->sink = ElfSink::createNew(env, *ss, rtspClient->url());
-    if (!ss->sink)
-        throw runtime_error("cbAfterSetup() : Cannot create sink !");
-    // Save client ptr in subsession
-    ss->miscPtr = rtspClient;
+    delete[] resultString;
 
-    // Set up the next subsession, if any:
-    setupNextSubsession(rtspClient);
+    if (string(ss->mediumName()) == "video") {
+        scs.subsessionVideo = ss;
+//        env << "cbAfterSetup() : video : RESOLUTION = " << ss->videoWidth() << "x" << ss->videoHeight() << "\n";
 
-    // Start playing this sink
-    ss->sink->startPlaying(*(ss->readSource()), cbSSAfterPlay, ss);
+        // Create the video sink
+        ss->sink = ElfSink::createNew(env, *ss, rtspClient->url());
+        if (!ss->sink)
+            throw runtime_error("cbAfterSetup() : Cannot create video sink !");
+        // Save client ptr in subsession
+        ss->miscPtr = rtspClient;
+
+        // Set up the next subsession, if any:
+        setupNextSubsession(rtspClient);
+
+        // Start playing this sink
+        ss->sink->startPlaying(*(ss->readSource()), cbSSAfterPlay, ss);
+    } else if (string(ss->mediumName()) == "audio") {
+        // Create the audio sink if needed
+        env << "cbAfterSetup() : audio \n ";
+    }
 
     // TODO: bye handler
-    delete[] resultString;
+
 
 }
 //==================================================================================
@@ -74,6 +84,7 @@ void cbAfterPlay(RTSPClient* rtspClient, int resultCode, char* resultString){
     env << "cbAfterPlay() \n";
     if (resultCode)
         throw runtime_error("cbAfterPlay() : FAIL ! resultCode = " + to_string(resultCode));
+
 
     // TODO optional timer
 
@@ -121,10 +132,14 @@ void setupNextSubsession(RTSPClient* rtspClient) {
 void cbAfterDescribe(RTSPClient* rtspClient, int resultCode, char* resultString) {
     UsageEnvironment & env = rtspClient->envir();
     ElfClientState & scs = ((ElfRTSPClient *) rtspClient)->scs;
+    scs.sdpLines = resultString; // Save this string
+    scs.parseFrameResolution(); // Get width , height from SDP lines
 
     if (resultCode != 0)
         throw runtime_error("cbAfterDescribe() : resultCode = " + to_string(resultCode));
 
+
+    env << "cbAfterDescribe() : RESOLUTION = " << scs.frameWidth << "x" << scs.frameHeight << "\n";
     env << "cbAfterDescribe() [" << rtspClient->url() << "] resultString = \n" << resultString << "\n";
 
     // Create session out of SDP strings
