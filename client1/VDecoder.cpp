@@ -51,6 +51,7 @@ VDecoder::~VDecoder() {
 void VDecoder::parse(void *inData, size_t inSize, std::function<void(int, int, int, void *, void *, void *)> callBack) {
     using namespace std;
     // Loop over frames
+    cout << "inSize = " << inSize << endl;
     while (inSize > 0) {
         int ret = av_parser_parse2(pParser, pCtx, &pPkt->data, &pPkt->size,
                                    (uint8_t *) inData, inSize, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
@@ -62,9 +63,10 @@ void VDecoder::parse(void *inData, size_t inSize, std::function<void(int, int, i
         inData += ret;
         inSize -= ret;
 
-//        cout << "pPkt->size = " << pPkt->size << endl;
+        cout << "pPkt->size = " << pPkt->size << endl << endl;
         if (pPkt->size > 0)
             decode(callBack);  // Decode frame
+        av_packet_unref(pPkt);
     }
 }
 //=======================================
